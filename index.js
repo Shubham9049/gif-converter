@@ -3,6 +3,7 @@ const multer = require('multer');
 const ffmpeg = require('fluent-ffmpeg');
 const { path: ffmpegPath } = require('@ffmpeg-installer/ffmpeg');
 const path = require('path');
+const fs = require('fs');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
@@ -44,12 +45,27 @@ app.post('/convert', upload.single('video'), (req, res) => {
     ])
     .on('end', function() {
       res.download(outputPath, () => {
-        // Optionally, clean up files here
+        // Clean up files
+        fs.unlink(inputPath, (err) => {
+          if (err) {
+            console.error('Error deleting input file:', err);
+          }
+        });
+        fs.unlink(outputPath, (err) => {
+          if (err) {
+            console.error('Error deleting output file:', err);
+          }
+        });
       });
     })
     .on('error', function(err) {
       console.error('Error: ' + err.message);
       res.status(500).send('An error occurred during the conversion process.');
+      fs.unlink(inputPath, (err) => {
+        if (err) {
+          console.error('Error deleting input file after error:', err);
+        }
+      });
     })
     .save(outputPath);
 });
